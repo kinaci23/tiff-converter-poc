@@ -1,11 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
+import { ConverterUiComponent } from './features/converter-ui/converter-ui';
 
 @Component({
   selector: 'app-root',
-  imports: [],
-  templateUrl: './app.html',
-  styleUrl: './app.scss'
+  standalone: true,
+  imports: [ConverterUiComponent], 
+  template: `<app-converter-ui></app-converter-ui>`
 })
-export class App {
-  protected readonly title = signal('tiff-converter-poc');
-}
+export class AppComponent { }
