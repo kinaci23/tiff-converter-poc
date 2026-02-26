@@ -1,17 +1,17 @@
 <div style="font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
-  <h2>🛠️ TIFF Dönüşüm Laboratuvarı</h2>
+  <h2>🛠️ TIFF Dönüşüm</h2>
   
   <div style="margin-bottom: 20px;">
-    <label><b>1. Resim Seç (JPG/PNG):</b></label><br><br>
-    <input type="file" accept="image/jpeg, image/png" (change)="onFileSelected($event)">
+    <label><b>Dosya Seç (JPG/PNG/PDF):</b></label><br><br>
+    <input type="file" accept="image/jpeg, image/png, application/pdf" (change)="onFileSelected($event)">
   </div>
 
   <div *ngIf="selectedFile" style="margin-bottom: 20px;">
-    <label><b>2. Dönüşüm Motorunu Seç:</b></label><br><br>
+    <label><b>Dönüşüm Motorunu Seç:</b></label><br><br>
     <select [(ngModel)]="selectedEngine" style="padding: 5px; font-size: 16px;">
-      <option value="canvas">HTML5 Canvas (Yerleşik Motor)</option>
-      <option value="utif">UTIF.js (Hafif Siklet)</option>
-      <option value="wasm">WASM-ImageMagick (Ağır Siklet)</option>
+      <option value="canvas">HTML5 Canvas</option>
+      <option value="utif">UTIF.js</option>
+      <option value="wasm">WASM-ImageMagick</option>
     </select>
   </div>
 

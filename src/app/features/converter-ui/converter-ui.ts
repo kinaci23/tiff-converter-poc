@@ -1,35 +1,82 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { CanvasEngineService } from '../../core/engines/canvas-engine';
+import { UtifEngineService } from '../../core/engines/utif-engine';
+import { WasmEngineService } from '../../core/engines/wasm-engine';
+import { PdfEngineService } from '../../core/engines/pdf-engine';
 
 @Component({
   selector: 'app-converter-ui',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './converter-ui.html',   // .component kısmını sildik
-  styleUrls: ['./converter-ui.scss']    // .component kısmını sildik
+  templateUrl: './converter-ui.html',
+  styleUrls: ['./converter-ui.scss']
 })
 export class ConverterUiComponent {
   selectedFile: File | null = null;
-  selectedEngine: string = 'canvas';
+  selectedEngine: string = 'wasm'; 
   isConverting: boolean = false;
   conversionTime: number | null = null;
 
+  constructor(
+    private canvasEngine: CanvasEngineService,
+    private utifEngine: UtifEngineService,
+    private wasmEngine: WasmEngineService,
+    private pdfEngine: PdfEngineService,
+    private cdr: ChangeDetectorRef 
+  ) {}
+
   onFileSelected(event: any) {
     const file = event.target.files[0];
-    if (file && (file.type === 'image/jpeg' || file.type === 'image/png')) {
-      this.selectedFile = file;
-      this.conversionTime = null;
-    } else {
-      alert('Lütfen sadece JPEG veya PNG seçin.');
-    }
+    if (file) this.selectedFile = file;
   }
 
   async startConversion() {
     if (!this.selectedFile) return;
     this.isConverting = true;
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    this.isConverting = false;
-    this.conversionTime = 1000;
+    const startTime = performance.now();
+
+    try {
+      // ÇÖZÜM: Değişkeni dışarıda tanımladık (Scope hatası çözüldü)
+      let pages: Uint8Array[] = [];
+
+      if (this.selectedFile.type === 'application/pdf') {
+        pages = await this.pdfEngine.extractAllPages(this.selectedFile);
+      } else {
+        const buf = await this.selectedFile.arrayBuffer();
+        pages = [new Uint8Array(buf)];
+      }
+
+      let result: Blob;
+      if (this.selectedEngine === 'wasm') {
+        result = await this.wasmEngine.convertToTiff(pages);
+      } else {
+        // ÇÖZÜM: BlobPart hatası için ArrayBuffer'ı kopyalayarak veriyoruz
+        const pageClone = new Uint8Array(pages[0]);
+        const singlePageFile = new File([pageClone.buffer], 'temp.jpg', { type: 'image/jpeg' });
+        
+        result = this.selectedEngine === 'utif' 
+          ? await this.utifEngine.convertToTiff(singlePageFile)
+          : await this.canvasEngine.convertToTiff(singlePageFile);
+      }
+
+      this.conversionTime = Math.round(performance.now() - startTime);
+      this.downloadFile(result, 'converted.tiff');
+    } catch (e) {
+      console.error("Dönüşüm hatası:", e);
+    } finally {
+      this.isConverting = false;
+      this.cdr.detectChanges();
+    }
+  }
+
+  private downloadFile(blob: Blob, fileName: string) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 }
