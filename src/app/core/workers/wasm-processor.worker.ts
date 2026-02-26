@@ -1,8 +1,9 @@
 /// <reference lib="webworker" />
-import { initializeImageMagick, ImageMagick, MagickFormat, MagickImageCollection } from '@imagemagick/magick-wasm';
+import { initializeImageMagick, ImageMagick, MagickFormat, MagickImageCollection, MagickImage } from '@imagemagick/magick-wasm';
 
 let isMagickInitialized = false;
 
+// Worker'a gelen mesajları işler
 addEventListener('message', async ({ data }) => {
   try {
     if (!isMagickInitialized) {
@@ -11,25 +12,25 @@ addEventListener('message', async ({ data }) => {
       isMagickInitialized = true;
     }
 
-    // ÇÖZÜM: create() içine fonksiyon yazmıyoruz! Doğrudan değişkene atıyoruz.
     const images = MagickImageCollection.create();
-    
     const inputBuffers: ArrayBuffer[] = data.buffers;
-    
+
     if (!inputBuffers || inputBuffers.length === 0) {
       throw new Error("İşlenecek sayfa verisi bulunamadı.");
     }
 
+    // Gelen buffer verilerinden MagickImage nesneleri oluşturur
     inputBuffers.forEach((buffer) => {
-      images.read(new Uint8Array(buffer));
+      const img = MagickImage.create(new Uint8Array(buffer));
+      images.push(img);
     });
 
+    // Resimleri TIFF formatına çevirir ve gönderir
     images.write(MagickFormat.Tiff, (tiffData: Uint8Array) => {
       const copy = new Uint8Array(tiffData);
       postMessage({ status: 'success', data: copy.buffer }, [copy.buffer] as any);
     });
 
-    // İşimiz bitince belleği serbest bırakıyoruz (Çok önemli!)
     images.dispose();
 
   } catch (error: any) {

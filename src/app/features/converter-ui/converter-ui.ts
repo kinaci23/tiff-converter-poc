@@ -15,7 +15,7 @@ import { PdfEngineService } from '../../core/engines/pdf-engine';
 })
 export class ConverterUiComponent {
   selectedFile: File | null = null;
-  selectedEngine: string = 'wasm'; 
+  selectedEngine: string = 'wasm';
   isConverting: boolean = false;
   conversionTime: number | null = null;
 
@@ -24,23 +24,25 @@ export class ConverterUiComponent {
     private utifEngine: UtifEngineService,
     private wasmEngine: WasmEngineService,
     private pdfEngine: PdfEngineService,
-    private cdr: ChangeDetectorRef 
-  ) {}
+    private cdr: ChangeDetectorRef
+  ) { }
 
+  // Dosya seçildiğinde tetiklenir
   onFileSelected(event: any) {
     const file = event.target.files[0];
     if (file) this.selectedFile = file;
   }
 
+  // Dönüştürme işlemini başlatır
   async startConversion() {
     if (!this.selectedFile) return;
     this.isConverting = true;
     const startTime = performance.now();
 
     try {
-      // HATA ÇÖZÜMÜ: Değişkeni dışarıda tanımlayarak scope hatasını bitirdik
       let pages: Uint8Array[] = [];
 
+      // Dosya PDF ise tüm sayfaları çıkarır, değilse tek sayfa olarak okur
       if (this.selectedFile.type === 'application/pdf') {
         pages = await this.pdfEngine.extractAllPages(this.selectedFile);
       } else {
@@ -49,14 +51,15 @@ export class ConverterUiComponent {
       }
 
       let result: Blob;
+
+      // Seçilen dönüştürücü motoruna göre işlemi gerçekleştirir
       if (this.selectedEngine === 'wasm') {
         result = await this.wasmEngine.convertToTiff(pages);
       } else {
-        // HATA ÇÖZÜMÜ: SharedArrayBuffer'ı normal buffer'a kopyalayıp BlobPart yaptık
         const bufferCopy = pages[0].slice().buffer;
         const singlePageFile = new File([bufferCopy], 'temp.jpg', { type: 'image/jpeg' });
-        
-        result = this.selectedEngine === 'utif' 
+
+        result = this.selectedEngine === 'utif'
           ? await this.utifEngine.convertToTiff(singlePageFile)
           : await this.canvasEngine.convertToTiff(singlePageFile);
       }
@@ -71,6 +74,7 @@ export class ConverterUiComponent {
     }
   }
 
+  // Oluşturulan dosyayı indirmeyi sağlar
   private downloadFile(blob: Blob, fileName: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

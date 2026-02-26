@@ -4,14 +4,15 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class CanvasEngineService {
-  
+
+  // Dosyayı TIFF formatına dönüştürür
   convertToTiff(file: File): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const img = new Image();
       const objectUrl = URL.createObjectURL(file);
 
+      // Resim başarıyla yüklendiğinde çalışır
       img.onload = () => {
-        // 1. Resmi çizeceğimiz görünmez bir Canvas oluşturuyoruz
         const canvas = document.createElement('canvas');
         canvas.width = img.width;
         canvas.height = img.height;
@@ -22,21 +23,20 @@ export class CanvasEngineService {
           return;
         }
 
-        // 2. Kullanıcının yüklediği resmi Canvas'a (RAM'e) piksel piksel çizdiriyoruz
         ctx.drawImage(img, 0, 0);
 
-        // 3. Canvas'tan dosyayı dışarı aktarıyoruz.
         canvas.toBlob((blob) => {
-          URL.revokeObjectURL(objectUrl); // Bellek sızıntısını (Memory Leak) önlemek için URL'i temizliyoruz
-          
+          URL.revokeObjectURL(objectUrl);
+
           if (blob) {
             resolve(blob);
           } else {
             reject(new Error('Canvas, resmi Blob formatına çeviremedi.'));
           }
-        }, 'image/tiff'); 
+        }, 'image/tiff');
       };
 
+      // Yükleme sırasında hata olursa çalışır
       img.onerror = () => {
         URL.revokeObjectURL(objectUrl);
         reject(new Error('Resim Canvas motoruna yüklenirken hata oluştu.'));
