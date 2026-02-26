@@ -12,7 +12,8 @@ export class PdfEngineService {
 
     for (let i = 1; i <= pdf.numPages; i++) {
       const page = await pdf.getPage(i);
-      const viewport = page.getPageViewport({ scale: 1.5 });
+      // 'getPageViewport' yerine 'getViewport' doğrusudur
+      const viewport = page.getViewport({ scale: 1.5 });
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
@@ -20,8 +21,12 @@ export class PdfEngineService {
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      // ÇÖZÜM: 'canvas' nesnesini buraya açıkça ekledik
-      await page.render({ canvasContext: ctx, viewport: viewport, canvas: canvas } as any).promise;
+      // HATA ÇÖZÜMÜ: 'canvas' nesnesi 'RenderParameters' içinde zorunludur
+      await page.render({ 
+        canvasContext: ctx, 
+        viewport: viewport, 
+        canvas: canvas 
+      } as any).promise;
 
       const blob: any = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
       const buffer = await blob.arrayBuffer();

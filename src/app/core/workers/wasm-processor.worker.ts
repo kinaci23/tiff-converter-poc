@@ -11,20 +11,26 @@ addEventListener('message', async ({ data }) => {
       isMagickInitialized = true;
     }
 
-    // ÇÖZÜM: 'new' yasak olduğu için 'create' callback yapısını kullanıyoruz
-    MagickImageCollection.create((images) => {
-      const inputBuffers: ArrayBuffer[] = data.buffers;
-      
-      inputBuffers.forEach((buffer) => {
-        images.read(new Uint8Array(buffer));
-      });
+    // ÇÖZÜM: create() içine fonksiyon yazmıyoruz! Doğrudan değişkene atıyoruz.
+    const images = MagickImageCollection.create();
+    
+    const inputBuffers: ArrayBuffer[] = data.buffers;
+    
+    if (!inputBuffers || inputBuffers.length === 0) {
+      throw new Error("İşlenecek sayfa verisi bulunamadı.");
+    }
 
-      images.write(MagickFormat.Tiff, (tiffData: Uint8Array) => {
-        // SharedArrayBuffer hatası almamak için veriyi kopyalıyoruz
-        const copy = new Uint8Array(tiffData);
-        postMessage({ status: 'success', data: copy.buffer }, [copy.buffer] as any);
-      });
+    inputBuffers.forEach((buffer) => {
+      images.read(new Uint8Array(buffer));
     });
+
+    images.write(MagickFormat.Tiff, (tiffData: Uint8Array) => {
+      const copy = new Uint8Array(tiffData);
+      postMessage({ status: 'success', data: copy.buffer }, [copy.buffer] as any);
+    });
+
+    // İşimiz bitince belleği serbest bırakıyoruz (Çok önemli!)
+    images.dispose();
 
   } catch (error: any) {
     postMessage({ status: 'error', error: error.message });

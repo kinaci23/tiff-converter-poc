@@ -38,7 +38,7 @@ export class ConverterUiComponent {
     const startTime = performance.now();
 
     try {
-      // ÇÖZÜM: Değişkeni dışarıda tanımladık (Scope hatası çözüldü)
+      // HATA ÇÖZÜMÜ: Değişkeni dışarıda tanımlayarak scope hatasını bitirdik
       let pages: Uint8Array[] = [];
 
       if (this.selectedFile.type === 'application/pdf') {
@@ -52,9 +52,9 @@ export class ConverterUiComponent {
       if (this.selectedEngine === 'wasm') {
         result = await this.wasmEngine.convertToTiff(pages);
       } else {
-        // ÇÖZÜM: BlobPart hatası için ArrayBuffer'ı kopyalayarak veriyoruz
-        const pageClone = new Uint8Array(pages[0]);
-        const singlePageFile = new File([pageClone.buffer], 'temp.jpg', { type: 'image/jpeg' });
+        // HATA ÇÖZÜMÜ: SharedArrayBuffer'ı normal buffer'a kopyalayıp BlobPart yaptık
+        const bufferCopy = pages[0].slice().buffer;
+        const singlePageFile = new File([bufferCopy], 'temp.jpg', { type: 'image/jpeg' });
         
         result = this.selectedEngine === 'utif' 
           ? await this.utifEngine.convertToTiff(singlePageFile)
