@@ -2,12 +2,11 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class WasmEngineService {
-  // Sayfaları alarak TIFF formatına dönüştürür
-  convertToTiff(pages: Uint8Array[]): Promise<Blob> {
+  // YENİ: colorMode ve tiffQuality parametreleri eklendi
+  convertToTiff(pages: Uint8Array[], options: { dpi: number, compression: string, colorMode: string, tiffQuality: number }): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const worker = new Worker(new URL('../workers/wasm-processor.worker', import.meta.url), { type: 'module' });
 
-      // Worker'dan başarılı veya hatalı mesaj alındığında çalışır
       worker.onmessage = ({ data }) => {
         if (data.status === 'success') {
           const blob = new Blob([data.data], { type: 'image/tiff' });
@@ -19,14 +18,21 @@ export class WasmEngineService {
         }
       };
 
-      // Worker'da hata oluştuğunda çalışır
       worker.onerror = (error) => {
         worker.terminate();
         reject(error);
       };
 
       const buffers = pages.map(p => p.buffer);
-      worker.postMessage({ buffers: buffers }, buffers);
+      
+      // YENİ: Bütün paket Worker'a fırlatılıyor
+      worker.postMessage({ 
+        buffers: buffers, 
+        dpi: options.dpi, 
+        compression: options.compression,
+        colorMode: options.colorMode,
+        tiffQuality: options.tiffQuality
+      }, buffers);
     });
   }
 }

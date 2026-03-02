@@ -1,27 +1,142 @@
-<div style="font-family: Arial; max-width: 600px; margin: 40px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
-  <h2>🛠️ TIFF Dönüşüm</h2>
+<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 950px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #fcfcfc; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+  <h2 style="text-align: center; color: #333; margin-top: 0;">🛠️ Gelişmiş TIFF Laboratuvarı</h2>
   
-  <div style="margin-bottom: 20px;">
-    <label><b>Dosya Seç (JPG/PNG/PDF):</b></label><br><br>
-    <input type="file" accept="image/jpeg, image/png, application/pdf" (change)="onFileSelected($event)">
-  </div>
+  <div style="display: flex; gap: 25px; margin-top: 30px; flex-wrap: wrap;">
+    
+    <div style="flex: 1; min-width: 350px; background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #007bff;">
+      <h3 style="color: #007bff; margin-top: 0;">📄 Dönüştürme</h3>
+      <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Tek bir dosyayı TIFF formatına çevir.</p>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="font-size: 14px; font-weight: bold; color: #444;">Dosya Seç:</label><br>
+        <input type="file" accept="image/jpeg, image/png, application/pdf" (change)="onConvertFileSelected($event)" style="margin-top: 8px; width: 100%;">
+      </div>
 
-  <div *ngIf="selectedFile" style="margin-bottom: 20px;">
-    <label><b>Dönüşüm Motorunu Seç:</b></label><br><br>
-    <select [(ngModel)]="selectedEngine" style="padding: 5px; font-size: 16px;">
-      <option value="canvas">HTML5 Canvas</option>
-      <option value="utif">UTIF.js</option>
-      <option value="wasm">WASM-ImageMagick</option>
-    </select>
-  </div>
+      <div *ngIf="convertFile" style="margin-bottom: 20px;">
+        <label style="font-size: 14px; font-weight: bold; color: #444;">Motor Seçimi:</label><br>
+        <select [(ngModel)]="convertEngine" style="padding: 8px; width: 100%; font-size: 14px; margin-top: 8px; border-radius: 4px; border: 1px solid #ccc;">
+          <option value="wasm">WASM-ImageMagick (Önerilen)</option>
+          <option value="utif">UTIF.js</option>
+          <option value="canvas">HTML5 Canvas</option>
+        </select>
+      </div>
+      
+      <div *ngIf="showConvertParamsBox" style="background: #f8f9fa; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef;">
+        <h4 style="margin: 0 0 15px 0; color: #333; font-size: 15px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">⚙️ Parametreler</h4>
+        
+        <ng-container *ngIf="hasConvertPdf">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="font-size: 13px; color: #555;">PDF Çözünürlüğü (Scale):</label>
+            <input type="number" min="1.0" max="5.0" step="0.5" [(ngModel)]="pdfScale" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="font-size: 13px; color: #555;">PDF Kalitesi (%):</label>
+            <input type="number" min="10" max="100" step="1" [(ngModel)]="pdfQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+        </ng-container>
 
-  <button *ngIf="selectedFile" (click)="startConversion()" [disabled]="isConverting" 
-          style="padding: 10px 20px; font-size: 16px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
-    {{ isConverting ? 'Dönüştürülüyor...' : 'TIFF Formatına Çevir' }}
-  </button>
+        <ng-container *ngIf="convertEngine === 'wasm'">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="font-size: 13px; color: #555;">Renk Modu:</label>
+            <select [(ngModel)]="colorMode" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
+              <option value="original">Renkli</option>
+              <option value="grayscale">Siyah-Beyaz</option>
+            </select>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="font-size: 13px; color: #555;">TIFF Çıktı DPI:</label>
+            <input type="number" min="72" max="600" step="1" [(ngModel)]="tiffDpi" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 13px; color: #555;">TIFF Sıkıştırma:</label>
+            <select [(ngModel)]="tiffCompression" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
+              <option value="lzw">LZW</option>
+              <option value="jpeg">JPEG</option>
+              <option value="none">Yok</option>
+            </select>
+          </div>
+          
+          <div *ngIf="tiffCompression === 'jpeg'" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ccc;">
+            <label style="font-size: 13px; color: #e67e22; font-weight: bold;">JPEG Kalitesi (%):</label>
+            <input type="number" min="10" max="100" step="1" [(ngModel)]="tiffQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #f39c12; border-radius: 4px; background-color: #fdfae6;">
+          </div>
+        </ng-container>
+      </div>
 
-  <div *ngIf="conversionTime !== null" style="margin-top: 20px; padding: 15px; background-color: #d4edda; color: #155724; border-radius: 4px;">
-    <p style="margin: 0;">✅ <b>İşlem Tamamlandı!</b></p>
-    <p style="margin: 5px 0 0 0;">⏱ İşlem Süresi: <b>{{ conversionTime }} ms</b></p>
+      <button *ngIf="convertFile" (click)="startConversion()" [disabled]="isConverting || isMerging" 
+              style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s;">
+        {{ isConverting ? '⏳ Dönüştürülüyor...' : 'Dönüştür' }}
+      </button>
+
+      <div *ngIf="convertTime !== null" style="margin-top: 15px; padding: 12px; background-color: #d4edda; color: #155724; border-radius: 6px; border: 1px solid #c3e6cb; text-align: center;">
+        ✅ <b>İşlem Başarılı!</b> Süre: {{ convertTime }} ms
+      </div>
+    </div>
+
+
+    <div style="flex: 1; min-width: 350px; background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #28a745;">
+      <h3 style="color: #28a745; margin-top: 0;">📑 Birleştirme</h3>
+      <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Birden fazla dosyayı tek bir TIFF'te birleştir.</p>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="font-size: 14px; font-weight: bold; color: #444;">Dosyaları Seç (Çoklu):</label><br>
+        <input type="file" multiple accept="image/jpeg, image/png, application/pdf, image/tiff, .tif, .tiff" (change)="onMergeFilesSelected($event)" style="margin-top: 8px; width: 100%;">
+      </div>
+
+      <div *ngIf="mergeFiles.length > 0" style="background: #e9f7ef; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #d4edda;">
+        <h4 style="margin: 0 0 15px 0; color: #155724; font-size: 15px; border-bottom: 1px solid #c3e6cb; padding-bottom: 5px;">⚙️ Ortak Parametreler</h4>
+        
+        <ng-container *ngIf="hasMergePdf">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="font-size: 13px; color: #1a632b;">PDF Çözünürlüğü:</label>
+            <input type="number" min="1.0" max="5.0" step="0.5" [(ngModel)]="pdfScale" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #c3e6cb; border-radius: 4px;">
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <label style="font-size: 13px; color: #1a632b;">PDF Kalitesi (%):</label>
+            <input type="number" min="10" max="100" step="1" [(ngModel)]="pdfQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #c3e6cb; border-radius: 4px;">
+          </div>
+        </ng-container>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #1a632b;">Renk Modu:</label>
+          <select [(ngModel)]="colorMode" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #c3e6cb; border-radius: 4px;">
+            <option value="original">Renkli</option>
+            <option value="grayscale">Siyah-Beyaz</option>
+          </select>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <label style="font-size: 13px; color: #1a632b;">Nihai TIFF DPI:</label>
+          <input type="number" min="72" max="600" step="1" [(ngModel)]="tiffDpi" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #c3e6cb; border-radius: 4px;">
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label style="font-size: 13px; color: #1a632b;">TIFF Sıkıştırma:</label>
+          <select [(ngModel)]="tiffCompression" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #c3e6cb; border-radius: 4px;">
+            <option value="lzw">LZW</option>
+            <option value="jpeg">JPEG</option>
+            <option value="none">Yok</option>
+          </select>
+        </div>
+
+        <div *ngIf="tiffCompression === 'jpeg'" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #c3e6cb;">
+          <label style="font-size: 13px; color: #d35400; font-weight: bold;">JPEG Kalitesi (%):</label>
+          <input type="number" min="10" max="100" step="1" [(ngModel)]="tiffQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #f39c12; border-radius: 4px; background-color: #fdfae6;">
+        </div>
+      </div>
+
+      <div *ngIf="mergeFiles.length > 0" style="margin-bottom: 15px; padding-left: 5px;">
+        <p style="font-size: 14px; margin: 0 0 5px 0;"><b>Seçilenler:</b> {{ mergeFiles.length }} dosya hazır</p>
+        <p style="font-size: 12px; color: #777; margin: 0;"><i>* Motor: WASM-ImageMagick (Zorunlu)</i></p>
+      </div>
+
+      <button *ngIf="mergeFiles.length > 0" (click)="startMerge()" [disabled]="isConverting || isMerging" 
+              style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s;">
+        {{ isMerging ? '⏳ Birleştiriliyor...' : 'Birleştir' }}
+      </button>
+
+      <div *ngIf="mergeTime !== null" style="margin-top: 15px; padding: 12px; background-color: #d4edda; color: #155724; border-radius: 6px; border: 1px solid #c3e6cb; text-align: center;">
+        ✅ <b>İşlem Başarılı!</b> Süre: {{ mergeTime }} ms
+      </div>
+    </div>
+
   </div>
 </div>

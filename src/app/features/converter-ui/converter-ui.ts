@@ -14,10 +14,21 @@ import { PdfEngineService } from '../../core/engines/pdf-engine';
   styleUrls: ['./converter-ui.scss']
 })
 export class ConverterUiComponent {
-  selectedFile: File | null = null;
-  selectedEngine: string = 'wasm';
+  pdfScale: number = 1.5;
+  pdfQuality: number = 85; 
+  tiffDpi: number = 300;
+  tiffCompression: string = 'lzw';
+  colorMode: string = 'original'; 
+  tiffQuality: number = 80;
+
+  convertFile: File | null = null;
+  convertEngine: string = 'wasm';
   isConverting: boolean = false;
-  conversionTime: number | null = null;
+  convertTime: number | null = null;
+
+  mergeFiles: File[] = [];
+  isMerging: boolean = false;
+  mergeTime: number | null = null;
 
   constructor(
     private canvasEngine: CanvasEngineService,
@@ -27,54 +38,118 @@ export class ConverterUiComponent {
     private cdr: ChangeDetectorRef
   ) { }
 
-  // Dosya seçildiğinde tetiklenir
-  onFileSelected(event: any) {
-    const file = event.target.files[0];
-    if (file) this.selectedFile = file;
+  // --- AKILLI ARAYÜZ KONTROLLERİ (GETTERS) ---
+  get hasConvertPdf(): boolean {
+    return this.convertFile?.type === 'application/pdf';
   }
 
-  // Dönüştürme işlemini başlatır
+  get showConvertParamsBox(): boolean {
+    return this.hasConvertPdf || this.convertEngine === 'wasm';
+  }
+
+  get hasMergePdf(): boolean {
+    return this.mergeFiles.some(file => file.type === 'application/pdf');
+  }
+  // -------------------------------------------
+
+  onConvertFileSelected(event: any) {
+    this.convertFile = event.target.files[0] || null;
+    this.convertTime = null;
+  }
+
+  onMergeFilesSelected(event: any) {
+    if (event.target.files && event.target.files.length > 0) {
+      this.mergeFiles = Array.from(event.target.files);
+    } else {
+      this.mergeFiles = [];
+    }
+    this.mergeTime = null;
+  }
+
   async startConversion() {
-    if (!this.selectedFile) return;
+    if (!this.convertFile) return;
     this.isConverting = true;
+    this.convertTime = null;
     const startTime = performance.now();
+
+    const pdfOptions = { scale: this.pdfScale, quality: (this.pdfQuality / 100) };
+    const wasmOptions = { 
+      dpi: this.tiffDpi, 
+      compression: this.tiffCompression,
+      colorMode: this.colorMode,
+      tiffQuality: this.tiffQuality
+    };
 
     try {
       let pages: Uint8Array[] = [];
-
-      // Dosya PDF ise tüm sayfaları çıkarır, değilse tek sayfa olarak okur
-      if (this.selectedFile.type === 'application/pdf') {
-        pages = await this.pdfEngine.extractAllPages(this.selectedFile);
+      if (this.convertFile.type === 'application/pdf') {
+        pages = await this.pdfEngine.extractAllPages(this.convertFile, pdfOptions);
       } else {
-        const buf = await this.selectedFile.arrayBuffer();
+        const buf = await this.convertFile.arrayBuffer();
         pages = [new Uint8Array(buf)];
       }
 
       let result: Blob;
-
-      // Seçilen dönüştürücü motoruna göre işlemi gerçekleştirir
-      if (this.selectedEngine === 'wasm') {
-        result = await this.wasmEngine.convertToTiff(pages);
+      if (this.convertEngine === 'wasm') {
+        result = await this.wasmEngine.convertToTiff(pages, wasmOptions);
       } else {
         const bufferCopy = pages[0].slice().buffer;
         const singlePageFile = new File([bufferCopy], 'temp.jpg', { type: 'image/jpeg' });
-
-        result = this.selectedEngine === 'utif'
+        result = this.convertEngine === 'utif'
           ? await this.utifEngine.convertToTiff(singlePageFile)
           : await this.canvasEngine.convertToTiff(singlePageFile);
       }
 
-      this.conversionTime = Math.round(performance.now() - startTime);
-      this.downloadFile(result, 'converted.tiff');
+      this.convertTime = Math.round(performance.now() - startTime);
+      this.downloadFile(result, `converted_${this.convertFile.name.split('.')[0]}.tiff`);
     } catch (e) {
       console.error("Dönüşüm hatası:", e);
+      alert("Dönüşüm sırasında hata oluştu!");
     } finally {
       this.isConverting = false;
       this.cdr.detectChanges();
     }
   }
 
-  // Oluşturulan dosyayı indirmeyi sağlar
+  async startMerge() {
+    if (this.mergeFiles.length === 0) return;
+    this.isMerging = true;
+    this.mergeTime = null;
+    const startTime = performance.now();
+
+    const pdfOptions = { scale: this.pdfScale, quality: (this.pdfQuality / 100) };
+    const wasmOptions = { 
+      dpi: this.tiffDpi, 
+      compression: this.tiffCompression,
+      colorMode: this.colorMode,
+      tiffQuality: this.tiffQuality
+    };
+
+    try {
+      let allPages: Uint8Array[] = [];
+      for (const file of this.mergeFiles) {
+        if (file.type === 'application/pdf') {
+          const pdfPages = await this.pdfEngine.extractAllPages(file, pdfOptions);
+          allPages.push(...pdfPages);
+        } else {
+          const buf = await file.arrayBuffer();
+          allPages.push(new Uint8Array(buf));
+        }
+      }
+
+      const result = await this.wasmEngine.convertToTiff(allPages, wasmOptions);
+      
+      this.mergeTime = Math.round(performance.now() - startTime);
+      this.downloadFile(result, 'merged_document.tiff');
+    } catch (e) {
+      console.error("Birleştirme hatası:", e);
+      alert("Birleştirme sırasında hata oluştu!");
+    } finally {
+      this.isMerging = false;
+      this.cdr.detectChanges();
+    }
+  }
+
   private downloadFile(blob: Blob, fileName: string) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
