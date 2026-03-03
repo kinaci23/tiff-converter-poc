@@ -1,142 +1,172 @@
-<div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 950px; margin: 40px auto; padding: 30px; border: 1px solid #e0e0e0; border-radius: 12px; background-color: #fcfcfc; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
-  <h2 style="text-align: center; color: #333; margin-top: 0;">🛠️ Gelişmiş TIFF Laboratuvarı</h2>
-  
-  <div style="display: flex; gap: 25px; margin-top: 30px; flex-wrap: wrap;">
+<div class="flex h-screen w-full bg-gray-50 text-gray-800 font-sans overflow-hidden">
+
+  <div class="w-1/2 h-full flex flex-col p-6 bg-white border-r border-gray-200 shadow-sm z-10">
     
-    <div style="flex: 1; min-width: 350px; background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #007bff;">
-      <h3 style="color: #007bff; margin-top: 0;">📄 Dönüştürme</h3>
-      <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Tek bir dosyayı TIFF formatına çevir.</p>
-      
-      <div style="margin-bottom: 20px;">
-        <label style="font-size: 14px; font-weight: bold; color: #444;">Dosya Seç:</label><br>
-        <input type="file" accept="image/jpeg, image/png, application/pdf" (change)="onConvertFileSelected($event)" style="margin-top: 8px; width: 100%;">
+    <div class="flex justify-between items-end border-b border-gray-200 pb-3 mb-4 flex-shrink-0">
+      <h1 class="text-xl font-bold text-gray-800 tracking-wide uppercase flex items-center gap-2">
+        <span class="material-symbols-outlined text-blue-600">science</span>
+        TIFF Laboratuvarı
+      </h1>
+      <span class="text-[10px] bg-blue-50 border border-blue-200 text-blue-700 px-2 py-1 rounded font-mono tracking-wider">v4.2_STABLE</span>
+    </div>
+
+    <div class="flex-1 flex flex-col gap-4">
+
+      <div class="flex-shrink-0">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">1. Dosya Girişi</label>
+        <input 
+          type="file" multiple accept="image/jpeg, image/png, application/pdf" (change)="onFileSelected($event)"
+          class="block w-full text-sm text-gray-600 border border-gray-300 rounded-md cursor-pointer bg-gray-50 focus:outline-none file:mr-4 file:py-2 file:px-4 file:border-0 file:border-r file:border-gray-300 file:text-sm file:font-bold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 transition-colors"
+        >
       </div>
 
-      <div *ngIf="convertFile" style="margin-bottom: 20px;">
-        <label style="font-size: 14px; font-weight: bold; color: #444;">Motor Seçimi:</label><br>
-        <select [(ngModel)]="convertEngine" style="padding: 8px; width: 100%; font-size: 14px; margin-top: 8px; border-radius: 4px; border: 1px solid #ccc;">
-          <option value="wasm">WASM-ImageMagick (Önerilen)</option>
-          <option value="utif">UTIF.js</option>
-          <option value="canvas">HTML5 Canvas</option>
-        </select>
-      </div>
-      
-      <div *ngIf="showConvertParamsBox" style="background: #f8f9fa; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef;">
-        <h4 style="margin: 0 0 15px 0; color: #333; font-size: 15px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">⚙️ Parametreler</h4>
+      <div *ngIf="files.length > 0" class="flex-shrink-0 animate-fade-in">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">2. İşlem Motoru</label>
         
-        <ng-container *ngIf="hasConvertPdf">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label style="font-size: 13px; color: #555;">PDF Çözünürlüğü (Scale):</label>
-            <input type="number" min="1.0" max="5.0" step="0.5" [(ngModel)]="pdfScale" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label style="font-size: 13px; color: #555;">PDF Kalitesi (%):</label>
-            <input type="number" min="10" max="100" step="1" [(ngModel)]="pdfQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
-          </div>
-        </ng-container>
+        <select *ngIf="files.length === 1" [(ngModel)]="selectedEngine" class="w-full border border-gray-300 rounded-md p-2 text-sm bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none">
+          <option value="wasm">WASM-ImageMagick (Gelişmiş)</option>
+          <option value="utif">UTIF.js (Sadece JPEG Dönüşümü)</option>
+        </select>
 
-        <ng-container *ngIf="convertEngine === 'wasm'">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label style="font-size: 13px; color: #555;">Renk Modu:</label>
-            <select [(ngModel)]="colorMode" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
-              <option value="original">Renkli</option>
-              <option value="grayscale">Siyah-Beyaz</option>
-            </select>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label style="font-size: 13px; color: #555;">TIFF Çıktı DPI:</label>
-            <input type="number" min="72" max="600" step="1" [(ngModel)]="tiffDpi" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px;">
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <label style="font-size: 13px; color: #555;">TIFF Sıkıştırma:</label>
-            <select [(ngModel)]="tiffCompression" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #ccc; border-radius: 4px;">
-              <option value="lzw">LZW</option>
-              <option value="jpeg">JPEG</option>
-              <option value="none">Yok</option>
-            </select>
-          </div>
-          
-          <div *ngIf="tiffCompression === 'jpeg'" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #ccc;">
-            <label style="font-size: 13px; color: #e67e22; font-weight: bold;">JPEG Kalitesi (%):</label>
-            <input type="number" min="10" max="100" step="1" [(ngModel)]="tiffQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #f39c12; border-radius: 4px; background-color: #fdfae6;">
-          </div>
-        </ng-container>
+        <div *ngIf="files.length > 1" class="w-full bg-gray-100 border border-gray-200 rounded-md p-2 text-gray-600 font-mono text-xs flex items-center gap-2">
+          <span class="material-symbols-outlined text-[16px] text-gray-500">lock</span>
+          Çoklu dosya birleştirme için WASM Motoru devrede.
+        </div>
       </div>
 
-      <button *ngIf="convertFile" (click)="startConversion()" [disabled]="isConverting || isMerging" 
-              style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s;">
-        {{ isConverting ? '⏳ Dönüştürülüyor...' : 'Dönüştür' }}
-      </button>
+      <div *ngIf="files.length > 0" class="flex-1 flex flex-col gap-3 animate-fade-in">
+        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-0.5">3. Çıktı Parametreleri</label>
+        
+        <div *ngIf="isPdfFile" class="border border-gray-200 rounded-md p-3 bg-white relative">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-400"></div>
+          <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">PDF Rasterizasyon</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] font-medium text-gray-600 mb-1">Çözünürlük (Scale)</label>
+              <input type="number" [(ngModel)]="pdfScale" step="0.5" class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-gray-600 mb-1">Kalite (%)</label>
+              <input type="number" [(ngModel)]="pdfQuality" max="100" class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
+            </div>
+          </div>
+        </div>
 
-      <div *ngIf="convertTime !== null" style="margin-top: 15px; padding: 12px; background-color: #d4edda; color: #155724; border-radius: 6px; border: 1px solid #c3e6cb; text-align: center;">
-        ✅ <b>İşlem Başarılı!</b> Süre: {{ convertTime }} ms
+        <div *ngIf="selectedEngine === 'wasm' || files.length > 1" class="border border-gray-200 rounded-md p-3 bg-white relative flex-1">
+          <div class="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+          <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">TIFF Konfigürasyonu</h3>
+          
+          <div class="grid grid-cols-2 gap-3 mb-3">
+            <div>
+              <label class="block text-[11px] font-medium text-gray-600 mb-1">Renk Uzayı</label>
+              <select [(ngModel)]="colorMode" class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
+                <option value="original">Renkli (RGB)</option>
+                <option value="grayscale">Siyah-Beyaz</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-gray-600 mb-1">Hedef DPI</label>
+              <input type="number" [(ngModel)]="tiffDpi" class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
+            </div>
+          </div>
+
+          <div class="mb-2">
+            <label class="block text-[11px] font-medium text-gray-600 mb-1">Sıkıştırma Algoritması</label>
+            <select [(ngModel)]="compressionType" class="w-full border border-gray-300 rounded-md p-1.5 text-sm focus:ring-1 focus:ring-blue-500 outline-none">
+              <option value="lzw">LZW (Kayıpsız)</option>
+              <option value="jpeg">JPEG (Boyut Tasarrufu)</option>
+              <option value="none">Yok (Raw)</option>
+            </select>
+          </div>
+
+          <div *ngIf="compressionType === 'jpeg'" class="bg-gray-50 border border-gray-200 rounded-md p-2 mt-2">
+            <label class="block text-[11px] font-bold text-gray-700 mb-1">JPEG Kalitesi (10-100)</label>
+            <input type="number" [(ngModel)]="tiffQuality" min="10" max="100" class="w-full border border-gray-400 rounded-md p-1.5 text-sm font-bold focus:border-blue-500 outline-none">
+          </div>
+        </div>
+
       </div>
     </div>
 
-
-    <div style="flex: 1; min-width: 350px; background: #ffffff; padding: 25px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-top: 4px solid #28a745;">
-      <h3 style="color: #28a745; margin-top: 0;">📑 Birleştirme</h3>
-      <p style="font-size: 14px; color: #666; margin-bottom: 20px;">Birden fazla dosyayı tek bir TIFF'te birleştir.</p>
-      
-      <div style="margin-bottom: 20px;">
-        <label style="font-size: 14px; font-weight: bold; color: #444;">Dosyaları Seç (Çoklu):</label><br>
-        <input type="file" multiple accept="image/jpeg, image/png, application/pdf, image/tiff, .tif, .tiff" (change)="onMergeFilesSelected($event)" style="margin-top: 8px; width: 100%;">
-      </div>
-
-      <div *ngIf="mergeFiles.length > 0" style="background: #e9f7ef; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #d4edda;">
-        <h4 style="margin: 0 0 15px 0; color: #155724; font-size: 15px; border-bottom: 1px solid #c3e6cb; padding-bottom: 5px;">⚙️ Ortak Parametreler</h4>
-        
-        <ng-container *ngIf="hasMergePdf">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label style="font-size: 13px; color: #1a632b;">PDF Çözünürlüğü:</label>
-            <input type="number" min="1.0" max="5.0" step="0.5" [(ngModel)]="pdfScale" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #c3e6cb; border-radius: 4px;">
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <label style="font-size: 13px; color: #1a632b;">PDF Kalitesi (%):</label>
-            <input type="number" min="10" max="100" step="1" [(ngModel)]="pdfQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #c3e6cb; border-radius: 4px;">
-          </div>
-        </ng-container>
-
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <label style="font-size: 13px; color: #1a632b;">Renk Modu:</label>
-          <select [(ngModel)]="colorMode" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #c3e6cb; border-radius: 4px;">
-            <option value="original">Renkli</option>
-            <option value="grayscale">Siyah-Beyaz</option>
-          </select>
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <label style="font-size: 13px; color: #1a632b;">Nihai TIFF DPI:</label>
-          <input type="number" min="72" max="600" step="1" [(ngModel)]="tiffDpi" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #c3e6cb; border-radius: 4px;">
-        </div>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <label style="font-size: 13px; color: #1a632b;">TIFF Sıkıştırma:</label>
-          <select [(ngModel)]="tiffCompression" style="width: 95px; padding: 5px; font-size: 13px; border: 1px solid #c3e6cb; border-radius: 4px;">
-            <option value="lzw">LZW</option>
-            <option value="jpeg">JPEG</option>
-            <option value="none">Yok</option>
-          </select>
-        </div>
-
-        <div *ngIf="tiffCompression === 'jpeg'" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #c3e6cb;">
-          <label style="font-size: 13px; color: #d35400; font-weight: bold;">JPEG Kalitesi (%):</label>
-          <input type="number" min="10" max="100" step="1" [(ngModel)]="tiffQuality" style="width: 70px; padding: 5px; text-align: center; border: 1px solid #f39c12; border-radius: 4px; background-color: #fdfae6;">
-        </div>
-      </div>
-
-      <div *ngIf="mergeFiles.length > 0" style="margin-bottom: 15px; padding-left: 5px;">
-        <p style="font-size: 14px; margin: 0 0 5px 0;"><b>Seçilenler:</b> {{ mergeFiles.length }} dosya hazır</p>
-        <p style="font-size: 12px; color: #777; margin: 0;"><i>* Motor: WASM-ImageMagick (Zorunlu)</i></p>
-      </div>
-
-      <button *ngIf="mergeFiles.length > 0" (click)="startMerge()" [disabled]="isConverting || isMerging" 
-              style="width: 100%; padding: 12px; font-size: 16px; font-weight: bold; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.3s;">
-        {{ isMerging ? '⏳ Birleştiriliyor...' : 'Birleştir' }}
+    <div class="pt-4 mt-auto flex-shrink-0" *ngIf="files.length > 0">
+      <button 
+        (click)="startProcess()"
+        [disabled]="isProcessing"
+        class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-bold tracking-widest py-3 rounded-md transition-colors flex justify-center items-center gap-2 shadow-sm"
+      >
+        <span *ngIf="isProcessing" class="material-symbols-outlined text-[18px] animate-spin">sync</span>
+        {{ isProcessing ? 'SİSTEM ÇALIŞIYOR...' : 'İŞLEMİ BAŞLAT' }}
       </button>
+    </div>
 
-      <div *ngIf="mergeTime !== null" style="margin-top: 15px; padding: 12px; background-color: #d4edda; color: #155724; border-radius: 6px; border: 1px solid #c3e6cb; text-align: center;">
-        ✅ <b>İşlem Başarılı!</b> Süre: {{ mergeTime }} ms
+  </div>
+
+
+  <div class="w-1/2 h-full flex flex-col p-6 bg-gray-50">
+    
+    <div class="flex-shrink-0 mb-4 bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden flex flex-col max-h-40">
+      <div class="bg-gray-100 px-4 py-2 border-b border-gray-200 flex justify-between items-center z-10">
+        <span class="text-[11px] font-bold text-gray-600 uppercase tracking-wider">İşlem Kuyruğu</span>
+        <span class="bg-gray-300 text-gray-700 px-2 py-0.5 rounded text-[10px] font-bold">{{ files.length }} Dosya</span>
+      </div>
+      <div class="overflow-y-auto">
+        <ul class="divide-y divide-gray-100">
+          <li *ngIf="files.length === 0" class="px-4 py-4 text-center text-xs text-gray-400 italic">
+            Sistem boşta. Veri bekleniyor...
+          </li>
+          <li *ngFor="let file of files; let i = index" class="px-4 py-2 text-xs flex justify-between items-center hover:bg-gray-50 transition-colors">
+            <span class="font-mono text-gray-700 truncate pr-4">{{ i + 1 }}. {{ file.name }}</span>
+            <span class="text-gray-400 font-mono flex-shrink-0">{{ (file.size / 1024 / 1024).toFixed(2) }} MB</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="flex-1 bg-gray-900 rounded-lg shadow-lg flex flex-col overflow-hidden border border-gray-800">
+      
+      <div class="bg-gray-950 px-4 py-2 flex justify-between items-center border-b border-gray-800 flex-shrink-0">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
+          <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
+          <span class="text-[11px] font-mono text-gray-400 ml-2 tracking-widest uppercase">QA_TERMINAL</span>
+        </div>
+      </div>
+      
+      <div #logContainer class="flex-1 p-4 overflow-y-auto font-mono text-[12px] leading-relaxed text-gray-300 space-y-1">
+        
+        <div *ngFor="let log of systemLogs" class="flex items-start gap-2 hover:bg-gray-800/50 px-1 py-0.5 rounded transition-colors">
+          <span class="text-gray-500 shrink-0 select-none">[{{ log.time }}]</span>
+          
+          <span class="shrink-0 select-none" [ngClass]="{
+              'text-blue-400': log.type === 'info',
+              'text-green-400 font-bold': log.type === 'success',
+              'text-yellow-400 font-bold': log.type === 'warning',
+              'text-red-400 font-bold': log.type === 'error',
+              'text-purple-400 font-bold': log.type === 'param'
+            }">
+            [{{ log.category }}]
+          </span>
+          
+          <span class="text-gray-300 ml-1 break-words">{{ log.message }}</span>
+        </div>
+
+        <div *ngIf="isProcessing" class="flex items-center gap-2 mt-2 text-gray-400 animate-pulse px-1">
+          <span class="material-symbols-outlined text-[14px] animate-spin">settings</span>
+          <span>Sistem işlemi yürütüyor...</span>
+        </div>
+
       </div>
     </div>
 
   </div>
+
 </div>
+
+<style>
+  .animate-fade-in { animation: fadeIn 0.2s ease-in-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: translateY(0); } }
+  .overflow-y-auto::-webkit-scrollbar { width: 6px; }
+  .overflow-y-auto::-webkit-scrollbar-track { background: transparent; }
+  .overflow-y-auto::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.4); border-radius: 4px; }
+</style>

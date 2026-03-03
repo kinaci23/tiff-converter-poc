@@ -1,10 +1,16 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
+import { Component, ChangeDetectorRef, OnInit, ElementRef, ViewChild, AfterViewChecked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CanvasEngineService } from '../../core/engines/canvas-engine';
 import { UtifEngineService } from '../../core/engines/utif-engine';
 import { WasmEngineService } from '../../core/engines/wasm-engine';
 import { PdfEngineService } from '../../core/engines/pdf-engine';
+
+interface SystemLog {
+  time: string;
+  type: 'info' | 'success' | 'warning' | 'error' | 'param';
+  category: string;
+  message: string;
+}
 
 @Component({
   selector: 'app-converter-ui',
@@ -13,144 +19,157 @@ import { PdfEngineService } from '../../core/engines/pdf-engine';
   templateUrl: './converter-ui.html',
   styleUrls: ['./converter-ui.scss']
 })
-export class ConverterUiComponent {
-  pdfScale: number = 1.5;
-  pdfQuality: number = 85; 
-  tiffDpi: number = 300;
-  tiffCompression: string = 'lzw';
+export class ConverterUiComponent implements OnInit, AfterViewChecked {
+  @ViewChild('logContainer') private logContainer!: ElementRef;
+
+  // --- 1. TEKİL DURUM DEĞİŞKENLERİ ---
+  files: File[] = [];
+  selectedEngine: string = 'wasm';
+  isProcessing: boolean = false;
+
+  // --- 2. KULLANICI PARAMETRELERİ (SAF STANDARTLAR) ---
+  pdfScale: number = 1.0; 
+  pdfQuality: number = 100; 
+  tiffDpi: number = 72; 
+  compressionType: string = 'lzw'; 
   colorMode: string = 'original'; 
-  tiffQuality: number = 80;
+  tiffQuality: number = 85; 
 
-  convertFile: File | null = null;
-  convertEngine: string = 'wasm';
-  isConverting: boolean = false;
-  convertTime: number | null = null;
-
-  mergeFiles: File[] = [];
-  isMerging: boolean = false;
-  mergeTime: number | null = null;
+  // --- 3. QA LOG SİSTEMİ ---
+  systemLogs: SystemLog[] = [];
 
   constructor(
-    private canvasEngine: CanvasEngineService,
     private utifEngine: UtifEngineService,
     private wasmEngine: WasmEngineService,
     private pdfEngine: PdfEngineService,
     private cdr: ChangeDetectorRef
   ) { }
 
-  // --- AKILLI ARAYÜZ KONTROLLERİ (GETTERS) ---
-  get hasConvertPdf(): boolean {
-    return this.convertFile?.type === 'application/pdf';
+  ngOnInit(): void {
+    this.addLog('Sistem başlatıldı. Laboratuvar veri bekliyor.', 'info', 'SİSTEM');
   }
 
-  get showConvertParamsBox(): boolean {
-    return this.hasConvertPdf || this.convertEngine === 'wasm';
+  ngAfterViewChecked(): void {
+    this.scrollToBottom();
   }
 
-  get hasMergePdf(): boolean {
-    return this.mergeFiles.some(file => file.type === 'application/pdf');
-  }
-  // -------------------------------------------
-
-  onConvertFileSelected(event: any) {
-    this.convertFile = event.target.files[0] || null;
-    this.convertTime = null;
+  get isPdfFile(): boolean {
+    return this.files.some(file => file.type === 'application/pdf');
   }
 
-  onMergeFilesSelected(event: any) {
-    if (event.target.files && event.target.files.length > 0) {
-      this.mergeFiles = Array.from(event.target.files);
+  private scrollToBottom(): void {
+    try {
+      if (this.logContainer) {
+        this.logContainer.nativeElement.scrollTop = this.logContainer.nativeElement.scrollHeight;
+      }
+    } catch (err) {}
+  }
+
+  onFileSelected(event: any): void {
+    this.files = event.target.files?.length > 0 ? Array.from(event.target.files) : [];
+    
+    if (this.files.length > 0) {
+      const sizeMB = (this.files.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2);
+      this.addLog(`Kuyruğa ${this.files.length} dosya eklendi (${sizeMB} MB).`, 'info', 'GİRDİ');
+      
+      if (this.files.length > 1) {
+        this.selectedEngine = 'wasm';
+      }
     } else {
-      this.mergeFiles = [];
-    }
-    this.mergeTime = null;
-  }
-
-  async startConversion() {
-    if (!this.convertFile) return;
-    this.isConverting = true;
-    this.convertTime = null;
-    const startTime = performance.now();
-
-    const pdfOptions = { scale: this.pdfScale, quality: (this.pdfQuality / 100) };
-    const wasmOptions = { 
-      dpi: this.tiffDpi, 
-      compression: this.tiffCompression,
-      colorMode: this.colorMode,
-      tiffQuality: this.tiffQuality
-    };
-
-    try {
-      let pages: Uint8Array[] = [];
-      if (this.convertFile.type === 'application/pdf') {
-        pages = await this.pdfEngine.extractAllPages(this.convertFile, pdfOptions);
-      } else {
-        const buf = await this.convertFile.arrayBuffer();
-        pages = [new Uint8Array(buf)];
-      }
-
-      let result: Blob;
-      if (this.convertEngine === 'wasm') {
-        result = await this.wasmEngine.convertToTiff(pages, wasmOptions);
-      } else {
-        const bufferCopy = pages[0].slice().buffer;
-        const singlePageFile = new File([bufferCopy], 'temp.jpg', { type: 'image/jpeg' });
-        result = this.convertEngine === 'utif'
-          ? await this.utifEngine.convertToTiff(singlePageFile)
-          : await this.canvasEngine.convertToTiff(singlePageFile);
-      }
-
-      this.convertTime = Math.round(performance.now() - startTime);
-      this.downloadFile(result, `converted_${this.convertFile.name.split('.')[0]}.tiff`);
-    } catch (e) {
-      console.error("Dönüşüm hatası:", e);
-      alert("Dönüşüm sırasında hata oluştu!");
-    } finally {
-      this.isConverting = false;
-      this.cdr.detectChanges();
+      this.addLog('Dosya seçimi temizlendi.', 'warning', 'SİSTEM');
     }
   }
 
-  async startMerge() {
-    if (this.mergeFiles.length === 0) return;
-    this.isMerging = true;
-    this.mergeTime = null;
+  // --- ANA İŞLEM MOTORU VE DETAYLI LOGLAMA ---
+  // --- ANA İŞLEM MOTORU (TEST VE KARŞILAŞTIRMA ODAKLI LOG) ---
+  async startProcess(): Promise<void> {
+    if (this.files.length === 0) return;
+
+    this.isProcessing = true;
     const startTime = performance.now();
 
-    const pdfOptions = { scale: this.pdfScale, quality: (this.pdfQuality / 100) };
-    const wasmOptions = { 
-      dpi: this.tiffDpi, 
-      compression: this.tiffCompression,
-      colorMode: this.colorMode,
-      tiffQuality: this.tiffQuality
-    };
+    // 1. AYARLARI BASTIR (Mantıksal Sırayla)
+    const isWasm = this.selectedEngine === 'wasm' || this.files.length > 1;
+    let paramLogs = [];
+    
+    // 1.1. Motor Bilgisi
+    paramLogs.push(`Motor: ${isWasm ? 'WASM' : 'UTIF'}`);
+    
+    // 1.2. PDF Ayarları (Sadece kuyrukta PDF varsa)
+    if (this.isPdfFile) {
+      paramLogs.push(`PDF Scale: ${this.pdfScale}x`);
+      paramLogs.push(`PDF Kalite: %${this.pdfQuality}`);
+    }
+    
+    // 1.3. TIFF Çıktı Ayarları (Sadece WASM devredeyse)
+    if (isWasm) {
+      paramLogs.push(`Renk: ${this.colorMode.toUpperCase()}`);
+      paramLogs.push(`DPI: ${this.tiffDpi}`);
+      if (this.compressionType === 'jpeg') {
+        paramLogs.push(`Sıkıştırma: JPEG (%${this.tiffQuality})`);
+      } else {
+        paramLogs.push(`Sıkıştırma: ${this.compressionType.toUpperCase()}`);
+      }
+    }
+
+    // Ayarlar dizisini aralarına " | " koyarak tek satırda birleştir
+    this.addLog(paramLogs.join(' | '), 'param', 'AYARLAR');
 
     try {
-      let allPages: Uint8Array[] = [];
-      for (const file of this.mergeFiles) {
+      const allPages: Uint8Array[] = [];
+
+      // Arka planda sessizce PDF/Görüntü okuma (Ara loglar kaldırıldı)
+      for (let i = 0; i < this.files.length; i++) {
+        const file = this.files[i];
         if (file.type === 'application/pdf') {
-          const pdfPages = await this.pdfEngine.extractAllPages(file, pdfOptions);
-          allPages.push(...pdfPages);
+          const pdfOptions = { scale: this.pdfScale, quality: (this.pdfQuality / 100) };
+          const pages = await this.pdfEngine.extractAllPages(file, pdfOptions);
+          allPages.push(...pages);
         } else {
           const buf = await file.arrayBuffer();
           allPages.push(new Uint8Array(buf));
         }
       }
 
-      const result = await this.wasmEngine.convertToTiff(allPages, wasmOptions);
+      let resultBlob: Blob;
+
+      // Arka planda sessizce Motoru çalıştırma
+      if (isWasm) {
+        const wasmOptions = { 
+          dpi: this.tiffDpi, compression: this.compressionType, 
+          colorMode: this.colorMode, tiffQuality: this.tiffQuality 
+        };
+        resultBlob = await this.wasmEngine.convertToTiff(allPages, wasmOptions);
+      } else {
+        const singlePageFile = new File([allPages[0].slice().buffer], 'temp.jpg', { type: 'image/jpeg' });
+        resultBlob = await this.utifEngine.convertToTiff(singlePageFile);
+      }
+
+      // 2. SONUCU BASTIR (Milisanlye ve Boyut Karşılaştırması)
+      const processTime = Math.round(performance.now() - startTime);
+      const newSizeMB = (resultBlob.size / 1024 / 1024).toFixed(2);
+      const oldSizeMB = (this.files.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2);
       
-      this.mergeTime = Math.round(performance.now() - startTime);
-      this.downloadFile(result, 'merged_document.tiff');
-    } catch (e) {
-      console.error("Birleştirme hatası:", e);
-      alert("Birleştirme sırasında hata oluştu!");
+      this.addLog(`⏱️ ${processTime} ms | 📦 Boyut: ${oldSizeMB} MB ➡️ ${newSizeMB} MB`, 'success', 'SONUÇ');
+      
+      this.downloadFile(resultBlob, `Laboratuvar_Cikti_${Date.now()}.tiff`);
+
+    } catch (error: any) {
+      console.error(error);
+      this.addLog(`Hata: ${error.message || 'Bilinmeyen Hata'}`, 'error', 'HATA');
     } finally {
-      this.isMerging = false;
+      this.isProcessing = false;
       this.cdr.detectChanges();
     }
   }
 
-  private downloadFile(blob: Blob, fileName: string) {
+  private addLog(message: string, type: 'info' | 'success' | 'warning' | 'error' | 'param', category: string): void {
+    const time = new Date().toLocaleTimeString('tr-TR', { hour12: false });
+    this.systemLogs.push({ time, type, category, message });
+    this.cdr.detectChanges();
+  }
+
+  private downloadFile(blob: Blob, fileName: string): void {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
