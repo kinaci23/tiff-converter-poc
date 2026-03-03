@@ -4,10 +4,8 @@
     
     <div class="flex justify-between items-end border-b border-gray-200 pb-3 mb-4 flex-shrink-0">
       <h1 class="text-xl font-bold text-gray-800 tracking-wide uppercase flex items-center gap-2">
-        <span class="material-symbols-outlined text-blue-600">science</span>
-        TIFF Laboratuvarı
+        TIFF CONVERTER
       </h1>
-      <span class="text-[10px] bg-blue-50 border border-blue-200 text-blue-700 px-2 py-1 rounded font-mono tracking-wider">v4.2_STABLE</span>
     </div>
 
     <div class="flex-1 flex flex-col gap-4">
@@ -24,7 +22,7 @@
         <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">2. İşlem Motoru</label>
         
         <select *ngIf="files.length === 1" [(ngModel)]="selectedEngine" class="w-full border border-gray-300 rounded-md p-2 text-sm bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none">
-          <option value="wasm">WASM-ImageMagick (Gelişmiş)</option>
+          <option value="wasm">WASM-ImageMagick</option>
           <option value="utif">UTIF.js (Sadece JPEG Dönüşümü)</option>
         </select>
 
@@ -129,7 +127,6 @@
           <span class="w-2.5 h-2.5 rounded-full bg-red-500"></span>
           <span class="w-2.5 h-2.5 rounded-full bg-yellow-500"></span>
           <span class="w-2.5 h-2.5 rounded-full bg-green-500"></span>
-          <span class="text-[11px] font-mono text-gray-400 ml-2 tracking-widest uppercase">QA_TERMINAL</span>
         </div>
       </div>
       
