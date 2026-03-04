@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 
 @Injectable({ providedIn: 'root' })
 export class WasmEngineService {
-  // YENİ: colorMode ve tiffQuality parametreleri eklendi
   convertToTiff(pages: Uint8Array[], options: { dpi: number, compression: string, colorMode: string, tiffQuality: number }): Promise<Blob> {
     return new Promise((resolve, reject) => {
       const worker = new Worker(new URL('../workers/wasm-processor.worker', import.meta.url), { type: 'module' });
@@ -24,10 +23,9 @@ export class WasmEngineService {
       };
 
       const buffers = pages.map(p => p.buffer);
-      
-      // YENİ: Bütün paket Worker'a fırlatılıyor
-      worker.postMessage({ 
-        buffers: buffers, 
+
+      worker.postMessage({    
+        buffers: buffers, // transferable objects ram optimization için 
         dpi: options.dpi, 
         compression: options.compression,
         colorMode: options.colorMode,

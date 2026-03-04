@@ -22,12 +22,10 @@ interface SystemLog {
 export class ConverterUiComponent implements OnInit, AfterViewChecked {
   @ViewChild('logContainer') private logContainer!: ElementRef;
 
-  // --- 1. TEKİL DURUM DEĞİŞKENLERİ ---
   files: File[] = [];
   selectedEngine: string = 'wasm';
   isProcessing: boolean = false;
 
-  // --- 2. KULLANICI PARAMETRELERİ (SAF STANDARTLAR) ---
   pdfScale: number = 1.0; 
   pdfQuality: number = 100; 
   tiffDpi: number = 72; 
@@ -35,7 +33,6 @@ export class ConverterUiComponent implements OnInit, AfterViewChecked {
   colorMode: string = 'original'; 
   tiffQuality: number = 85; 
 
-  // --- 3. QA LOG SİSTEMİ ---
   systemLogs: SystemLog[] = [];
 
   constructor(
@@ -80,28 +77,22 @@ export class ConverterUiComponent implements OnInit, AfterViewChecked {
     }
   }
 
-  // --- ANA İŞLEM MOTORU VE DETAYLI LOGLAMA ---
-  // --- ANA İŞLEM MOTORU (TEST VE KARŞILAŞTIRMA ODAKLI LOG) ---
   async startProcess(): Promise<void> {
     if (this.files.length === 0) return;
 
     this.isProcessing = true;
     const startTime = performance.now();
 
-    // 1. AYARLARI BASTIR (Mantıksal Sırayla)
     const isWasm = this.selectedEngine === 'wasm' || this.files.length > 1;
     let paramLogs = [];
     
-    // 1.1. Motor Bilgisi
     paramLogs.push(`Motor: ${isWasm ? 'WASM' : 'UTIF'}`);
     
-    // 1.2. PDF Ayarları (Sadece kuyrukta PDF varsa)
     if (this.isPdfFile) {
       paramLogs.push(`PDF Scale: ${this.pdfScale}x`);
       paramLogs.push(`PDF Kalite: %${this.pdfQuality}`);
     }
     
-    // 1.3. TIFF Çıktı Ayarları (Sadece WASM devredeyse)
     if (isWasm) {
       paramLogs.push(`Renk: ${this.colorMode.toUpperCase()}`);
       paramLogs.push(`DPI: ${this.tiffDpi}`);
@@ -112,13 +103,11 @@ export class ConverterUiComponent implements OnInit, AfterViewChecked {
       }
     }
 
-    // Ayarlar dizisini aralarına " | " koyarak tek satırda birleştir
     this.addLog(paramLogs.join(' | '), 'param', 'AYARLAR');
 
     try {
       const allPages: Uint8Array[] = [];
 
-      // Arka planda sessizce PDF/Görüntü okuma (Ara loglar kaldırıldı)
       for (let i = 0; i < this.files.length; i++) {
         const file = this.files[i];
         if (file.type === 'application/pdf') {
@@ -133,7 +122,6 @@ export class ConverterUiComponent implements OnInit, AfterViewChecked {
 
       let resultBlob: Blob;
 
-      // Arka planda sessizce Motoru çalıştırma
       if (isWasm) {
         const wasmOptions = { 
           dpi: this.tiffDpi, compression: this.compressionType, 
@@ -145,7 +133,6 @@ export class ConverterUiComponent implements OnInit, AfterViewChecked {
         resultBlob = await this.utifEngine.convertToTiff(singlePageFile);
       }
 
-      // 2. SONUCU BASTIR (Milisanlye ve Boyut Karşılaştırması)
       const processTime = Math.round(performance.now() - startTime);
       const newSizeMB = (resultBlob.size / 1024 / 1024).toFixed(2);
       const oldSizeMB = (this.files.reduce((acc, f) => acc + f.size, 0) / 1024 / 1024).toFixed(2);

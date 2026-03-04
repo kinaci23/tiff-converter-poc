@@ -1,5 +1,4 @@
 /// <reference lib="webworker" />
-// YENİ: ColorSpace kütüphanesi eklendi
 import { initializeImageMagick, MagickFormat, MagickImageCollection, Density, DensityUnit, CompressionMethod, ColorSpace } from '@imagemagick/magick-wasm';
 
 let isMagickInitialized = false;
@@ -36,20 +35,20 @@ addEventListener('message', async ({ data }) => {
       for (let i = 0; i < tempCol.length; i++) {
         const img = tempCol[i];
         
-        // 1. DPI Genetiği
+        // 1. DPI Ayarı
         img.density = new Density(targetDpi, targetDpi, DensityUnit.PixelsPerInch);
         
-        // 2. Renk Modu (Siyah-Beyaz / Grayscale Filtresi)
+        // 2. Renk Modu 
         if (colorMode === 'grayscale') {
           img.colorSpace = ColorSpace.Gray;
         }
 
-        // 3. Özel TIFF Kalitesi (Sadece JPEG sıkıştırması aktifse uygulanır)
+        // 3. TIFF Kalitesi 
         if (compressionType === 'jpeg') {
           img.quality = tiffQuality;
         }
         
-        // 4. Sıkıştırma Genetiği
+        // 4. Sıkıştırma 
         if (img.settings) {
             img.settings.compression = magickCompression;
         }
